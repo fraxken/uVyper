@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <title></title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+    </head>
+    <body>
+        <script>
+            var socket = null;
+            try {
+                socket = new WebSocket("ws://localhost:3000");
+            } catch (exception) {
+                console.error(exception);
+            }
+
+            socket.onerror = function(error) {
+                console.error(error);
+            };
+
+            // Lorsque la connexion est établie.
+            socket.onopen = function(event) {
+                console.log("Connexion établie.");
+
+                this.onclose = function(event) {
+                    console.log("Connexion terminé.");
+                };
+
+                this.onmessage = function(event) {
+                    console.log("Message:", event.data);
+                };
+
+                this.send(JSON.stringify({
+                    event: 'test',
+                    data: {
+                        msg: 'hello world!'
+                    }
+                }));
+            };
+        </script>
+    </body>
+</html>

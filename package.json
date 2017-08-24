@@ -1,0 +1,22 @@
+{
+  "name": "fastsocket",
+  "version": "1.0.0",
+  "description": "Node.JS FastSocket (UWS implementation with Rooms & better event handling)",
+  "main": "index.js",
+  "scripts": {
+    "test": "node tests/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fraxken/uWebSocket_rooms.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/fraxken/uWebSocket_rooms/issues"
+  },
+  "homepage": "https://github.com/fraxken/uWebSocket_rooms#readme",
+  "dependencies": {
+    "uws": "^8.14.1"
+  }
+}
