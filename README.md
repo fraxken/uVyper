@@ -1,6 +1,12 @@
 # uWebSocket_rooms
 Node.JS uWebSocket rooms
 
+# Roadmap 
+
+- Client implementation
+- TLS Support ?
+- Better parsing in/out of structured events.
+
 # Example 
 
 ```js
