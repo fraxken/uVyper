@@ -145,7 +145,6 @@ class SocketHandler extends Events {
         super();
         this.ws = ws;
         this.id = uuid.v1();
-        console.log(this.id);
         this.rooms = new Set();
 
         /* 

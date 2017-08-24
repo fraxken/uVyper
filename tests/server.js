@@ -25,3 +25,4 @@ server.on('connection',async function(socket) {
     // unsafe version : RoomA.addSocket(socket);
 
 });
+
