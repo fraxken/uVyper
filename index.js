@@ -1,6 +1,7 @@
 // Require dependencies & npm packages!
 const { Server: SocketServer } = require('uws');
-const Events = require('events');
+const events = require('events');
+const https = require('https');
 const uuid = require('uuid');
 
 /*
@@ -10,7 +11,7 @@ const uuid = require('uuid');
  * 
  * @param {Map} rooms
  */
-class Controller extends Events {
+class Controller extends events {
 
     /*
      * @constructor
@@ -150,6 +151,7 @@ class SocketsPools extends Map {
 /* 
  * µVyper Room
  * @class Room
+ * @extended events
  * 
  * @property {String} name
  * @property {SocketsPools} sockets
@@ -163,7 +165,7 @@ class SocketsPools extends Map {
  *     @param {Socket} socket
  * }
  */
-class Room extends Events {
+class Room extends events {
 
     /*
      * @constructor
@@ -240,6 +242,7 @@ class Room extends Events {
 /* 
  * µWebSockets Socket Proxy
  * @class Socket
+ * @extended events
  * 
  * @property {String} id
  * @property {Set} rooms
@@ -251,7 +254,7 @@ class Room extends Events {
  * 
  * @event 'close' {}
  */
-class Socket extends Events {
+class Socket extends events {
 
     /*
      * @constructor 
@@ -417,9 +420,13 @@ Socket.DEFAULT_GET_TIMEOUT = 5000;
  * 
  * @interface IServerConstructor
  * @param {Number} port
+ * @param {Boolean} ssl
+ * @param {String} key
+ * @param {String} cert
  */
 const IServerConstructor = {
-    port: 3000
+    port: 3000,
+    ssl: false
 };
 
 /* 
@@ -429,6 +436,8 @@ const IServerConstructor = {
  * @property {String} id
  * @property {SocketsPools} sockets
  * @property {uws.Server} wss
+ * @property {Boolean} ssl
+ * @property {Https.Server} httpsServer
  * 
  * @event 'connection' {
  *     @param {Socket} socket
@@ -442,7 +451,7 @@ const IServerConstructor = {
  *     @param {ErrorMessage} error
  * }
  */
-class Server extends Events {
+class Server extends events {
 
     /*
      * @constructor 
@@ -453,7 +462,19 @@ class Server extends Events {
         options = Object.assign(options,{},IServerConstructor);
         this.id = uuid.v4();
         this.sockets = new SocketsPools();
-        this.wss = new SocketServer({ port: options.port });
+        this.ssl = options.ssl;
+        if(this.ssl === true) {
+            if('undefined' === typeof(options.key) || 'undefined' === typeof(options.cert)) {
+                throw new TypeError('Please define a key and cert for SSL');
+            }
+            this.httpsServer = https.createServer({key: options.key,cert: options.cert}, function(request,response) {
+                response.end();
+            }).listen(443);
+            this.wss = new SocketServer({ port: 443, server: this.httpsServer });
+        }
+        else {
+            this.wss = new SocketServer({ port: options.port });
+        }
         this.wss.on('connection', (ws) => {
             let socket = new Socket(ws);
             this.sockets.add(socket);
@@ -478,6 +499,20 @@ class Server extends Events {
         this.wss.on('listening',function() {
             EventsObserver.emit('server_connected',this.id);
         });
+    }
+
+    /*
+     * Listen on a port for the https server 
+     * @function Server.listen
+     * @param {Number} port
+     * @return void 0
+     */
+    listen(port) {
+        if(this.ssl === false) return;
+        if('number' !== typeof(port)) {
+            throw new TypeError('Invalid type for port argument');
+        }
+        this.httpsServer.listen(port);
     }
 
 }
