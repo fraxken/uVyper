@@ -71,14 +71,14 @@ class Message extends events {
      * @param {String} eventName
      * @param {Object} sourceData
      */
-    constructor(eventName,sourceData = {}) {
+    constructor(eventName,sourceData = {},exclude = []) {
         super();
         if('string' !== typeof(name)) {
             throw new TypeError('Invalid name type!');
         }
         this.eventName = eventName;
         this.sourceData = sourceData;
-        this.exclude = new Set();
+        this.exclude = new Set(exclude);
     }
 
     /*
