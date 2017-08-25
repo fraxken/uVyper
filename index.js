@@ -70,6 +70,7 @@ class Message extends events {
      * @constructor
      * @param {String} eventName
      * @param {Object} sourceData
+     * @param {Array} exclude
      */
     constructor(eventName,sourceData = {},exclude = []) {
         super();
