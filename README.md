@@ -1,9 +1,12 @@
-# uWebSocket_rooms
+# uVyper
 Node.JS uWebSocket rooms
+
+```
+npm install uvyper --save
+```
 
 # Roadmap 
 
-- Client implementation
 - TLS Support ?
 - Better parsing in/out of structured events.
 
