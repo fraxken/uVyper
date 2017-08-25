@@ -54,6 +54,20 @@ class Controller extends events {
 }
 const EventsObserver = new Controller(); // Create EventsObserver instance
 
+
+/*
+ * uVyper Event message!
+ * @class Event
+ * @extended Events
+ */
+class Event extends events {
+
+    constructor() {
+        super();
+    }
+
+}
+
 /*
  * SocketsPools collection that allow user to broadcast events.
  * @class SocketsPools
@@ -562,6 +576,7 @@ Server.EventsObserver = EventsObserver;
 module.exports = {
     Server,
     Socket,
+    Event,
     SocketsPools,
     Room
 };

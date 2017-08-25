@@ -1,5 +1,5 @@
 # uVyper
-Node.JS uVyper is an integration of uWebSockets with rooms and bring a high level structured message with JSON.
+Node.JS µVyper is an high level implementation of µWebSockets with rooms and provide simpler messages handling.
 
 ```
 npm install uvyper --save
@@ -7,5 +7,9 @@ npm install uvyper --save
 
 # Roadmap 
 
-- TLS Support ?
+- TLS Support ? (Work in progress).
 - Better parsing in/out of structured events.
+
+# Documentation
+
+Find all API documentations and examples in the Wiki section of github!
