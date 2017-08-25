@@ -364,6 +364,9 @@ class Socket extends events {
      * @return void 0
      */
     sendRaw(buffer) {
+        if('undefined' === typeof(buffer)) {
+            throw new TypeError('cannot send a undefined buffer!');
+        }
         this.ws.send(buffer);
     }
 
