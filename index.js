@@ -196,6 +196,18 @@ class SocketsPools extends Map {
         return this.get(socket instanceof Socket ? socket.id : socket);
     }
 
+        /*
+     * Add a new socket to the collection (safe way).
+     * @function SocketsPools.add
+     * @param {Socket} socket
+     */
+    add(socket) {
+        if(socket instanceof Socket === false) {
+            throw new TypeError('Not a SocketHandler type!');
+        }
+        this.set(socket.id,socket);
+    }
+
     /*
      * Return a array of socketsHandler!
      * @function SocketsPools.toArray
@@ -220,18 +232,6 @@ class SocketsPools extends Map {
             ret.push(id);
         }
         return ret;
-    }
-
-    /*
-     * Add a new socket to the collection (safe way).
-     * @function SocketsPools.add
-     * @param {Socket} socket
-     */
-    add(socket) {
-        if(socket instanceof Socket === false) {
-            throw new TypeError('Not a SocketHandler type!');
-        }
-        this.set(socket.id,socket);
     }
 
 }
