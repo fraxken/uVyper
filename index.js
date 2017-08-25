@@ -1,4 +1,4 @@
-const { Server: SocketServer, WebSocket: SocketClient } = require('uws');
+const { Server: SocketServer } = require('uws');
 const Events = require('events');
 const uuid = require('uuid');
 
@@ -278,49 +278,8 @@ class Server extends Events {
 
 }
 
-/* 
- * UWS Client interface
- */
-class Client extends Events {
-
-    constructor(uri) {
-        super();
-        this.ws = new SocketClient(uri); 
-
-        this.ws.on('open', function open() {
-            this.emit('open');
-        });
-        
-        this.ws.on('error', function error() {
-            this.emit('error','Failed to connect socket client into '+uri);
-        });
-        
-        this.ws.on('message', function(buf) {
-            try {
-                var jsonMessage = JSON.parse(buf.toString());
-            }
-            catch(E) {
-                this.emit('message',buf);
-                return;
-            }
-
-            const { event, data = {} } = jsonMessage;
-            if('undefined' === typeof(event)) return;
-            this.emit(event,data);
-        });
-        
-        this.ws.on('close', function(code, message) {
-            this.emit('close',{code, message});
-        });
-        this.send = sendMessage;
-    }
-
-
-}
-
 // Export class!
 module.exports = {
     Server,
-    Room,
-    Client
+    Room
 };
