@@ -88,7 +88,7 @@ class SocketMap extends Map {
             data
         };
 
-        const excludeSet = new Set(excludedIDs);
+        const excludeSet = new Set( excludedIDs.map( v => v instanceof SocketHandler ? v.id : v ) );
         try {
             _O = JSON.stringify(_O);
             for(let [id,socket] of this) {
@@ -170,32 +170,17 @@ class Room extends Events {
 }
 
 /*
- * Send function
- */
-function sendMessage(event,data) {
-    let _O = {
-        event,
-        data
-    }; 
-
-    try {
-        _O = JSON.stringify(_O);
-    }
-    catch(E) {
-        return;
-    }
-    EventsObserver.emit('send',_O);
-    this.ws.send(_O);
-}
-
-/*
  * UWS SocketHandler Proxy class
  */
 class SocketHandler extends Events {
 
-    constructor(ws) {
+    constructor(uWebSocket) {
         super();
-        this.ws = ws;
+        if('undefined' === typeof(uWebSocket)) {
+            throw new Error('Undefined uWS socket!');
+        }
+
+        this.ws = uWebSocket;
         this.id = uuid.v1();
         this.rooms = new Set();
 
@@ -225,7 +210,6 @@ class SocketHandler extends Events {
                 this.rooms.get(roomName).broadcast(event,data,[this.id]);
             }
         });
-        this.send = sendMessage.bind(this);
     }
 
     /* 
@@ -257,6 +241,26 @@ class SocketHandler extends Events {
     }
 
     /*
+     * Send a new socket message!
+     */
+    send(event,data = {}) {
+        let _O = {
+            event,
+            data
+        }; 
+    
+        try {
+            _O = JSON.stringify(_O);
+        }
+        catch(E) {
+            return;
+        }
+        EventsObserver.emit('send',_O);
+        this.ws.send(_O);
+    }
+    
+
+    /*
      * Send a new raw data (buffer).
      */
     sendRaw(buf) {
@@ -268,7 +272,16 @@ class SocketHandler extends Events {
      * join a new room with the current socket
      */
     join(room) {
-        if(room instanceof Room === false) {
+        if('undefined' === typeof(room)) {
+            throw new TypeError('Cannot join an undefined room!');
+        }
+        if('string' === typeof(room)) {
+            if(EventsObserver.rooms.has(room) === false) {
+                throw new TypeError(room+' room doesn\'t exist! ');
+            }
+            room = EventsObserver.rooms.get(room);
+        }
+        else if(room instanceof Room === false) {
             throw new TypeError('Invalid room!');
         }
         room.addSocket(this);
@@ -279,7 +292,16 @@ class SocketHandler extends Events {
      * leave a room where the current socket is eventually connected.
      */
     leave(room) {
-        if(room instanceof Room === false) {
+        if('undefined' === typeof(room)) {
+            throw new TypeError('Cannot leave an undefined room!');
+        }
+        if('string' === typeof(room)) {
+            if(EventsObserver.rooms.has(room) === false) {
+                throw new TypeError(room+' room doesn\'t exist! ');
+            }
+            room = EventsObserver.rooms.get(room);
+        }
+        else if(room instanceof Room === false) {
             throw new TypeError('Invalid room!');
         }
         room.deleteSocket(this);
@@ -287,26 +309,35 @@ class SocketHandler extends Events {
 
 }
 
+// Server constructor Interface
+const IServerConstructor = {
+    port: 3000
+};
+
 /* 
  * UWS Server interface
  */
 class Server extends Events {
 
-    constructor({port = 3000}) {
-        super({ port });
+    constructor(options = {}) {
+        super();
+        options = Object.assign(options,{},IServerConstructor);
         this.id = uuid.v4();
         this.sockets = new SocketMap();
-        this.wss = new SocketServer({port});
+        this.wss = new SocketServer({ port: options.port });
         this.wss.on('connection', (ws) => {
             let socket = new SocketHandler(ws);
             this.sockets.add(socket);
             this.emit('connection',socket);
 
-            ws.on('close',() => {
-                socket.close();
+            socket.on('close', () => {
                 this.sockets.delete(socket.id);
                 this.emit('disconnect',socket);
                 socket = undefined;
+            });
+
+            ws.on('close',() => {
+                socket.close();
             });
         });
 
