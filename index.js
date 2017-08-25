@@ -57,13 +57,107 @@ const EventsObserver = new Controller(); // Create EventsObserver instance
 
 /*
  * uVyper Event message!
- * @class Event
+ * @class Message
  * @extended Events
- */
-class Event extends events {
+ * 
+ * @property {String} eventName
+ * @property {Object} sourceData
+ * @property {Set} exclude
+ */ 
+class Message extends events {
 
-    constructor() {
+    /*
+     * @constructor
+     * @param {String} eventName
+     * @param {Object} sourceData
+     */
+    constructor(eventName,sourceData = {}) {
         super();
+        if('string' !== typeof(name)) {
+            throw new TypeError('Invalid name type!');
+        }
+        this.eventName = eventName;
+        this.sourceData = sourceData;
+        this.exclude = new Set();
+    }
+
+    /*
+     * Exclude some socket/socket.id from the message
+     * @function Message.exclude
+     * @param {Socket|String} socket
+     * return Message
+     */
+    exclude(socket) {
+        if(socket instanceof Array === true) {
+            socket.forEach( (sock) => {
+                this.exclude.add( sock instanceof Socket === true ? sock.id : sock );
+            });
+        }
+        else {
+            this.exclude.add( socket instanceof Socket === true ? socket.id : socket );
+        }
+        return this;
+    }
+
+    /*
+     * Publish a message to a source!
+     * @function Message.publish
+     * @param {Socket|Server|Room} source
+     * @param {Object} data
+     * return void 0
+     */
+    publish(source,data) {
+        if('undefined' === typeof(source)) {
+            throw new TypeError('Undefined source');
+        }
+        if('undefined' !== typeof(data)) {
+            data = Object.assign(this.sourceData,data);
+        }
+
+        return new Promise((resolve,reject) => {
+            if(source instanceof Socket === true) {
+                let messageObject = {
+                    event: this.eventName,
+                    data
+                }; 
+            
+                try {
+                    messageObject = JSON.stringify(messageObject);
+                }
+                catch(E) {
+                    reject(E);
+                }
+                EventsObserver.emit('send',messageObject);
+                source.ws.send(messageObject);
+                resolve();
+            }
+            else if(source instanceof Server === true || source instanceof Room === true) {
+                let messageObject = {
+                    event: this.eventName,
+                    data
+                };
+                if(source instanceof Room === true) {
+                    messageObject.roomName = source.sockets.room;
+                }
+    
+                try {
+                    messageObject = JSON.stringify(messageObject);
+                    for(let [id,socket] of source) {
+                        if(this.exclude.has(id)) {
+                            continue;
+                        }
+                        socket.ws.send(messageObject);
+                    }
+                    resolve();
+                }
+                catch(E) {
+                    reject(E);
+                }
+            }
+            else {
+                reject('Unknow source type');
+            }
+        });
     }
 
 }
@@ -138,39 +232,6 @@ class SocketsPools extends Map {
             throw new TypeError('Not a SocketHandler type!');
         }
         this.set(socket.id,socket);
-    }
-
-    /*
-     * Broadcast an event to all sockets stored in the collection.
-     * @function SocketsPools.broadcast
-     * @param {String} eventName
-     * @param {Object} data
-     * @param {Array} excludedIDs
-     * @return void 0
-     */
-    broadcast(eventName,data = {},excludedIDs = []) {
-        if('undefined' === typeof(eventName)) {
-            throw new Error('Impossible to broadcast to an undefined event!');
-        }
-        let _O = {
-            event: eventName,
-            roomName: this.room,
-            data
-        };
-
-        const excludeSet = new Set( excludedIDs.map( v => v instanceof Socket ? v.id : v ) );
-        try {
-            _O = JSON.stringify(_O);
-            for(let [id,socket] of this) {
-                if(excludeSet.has(id)) {
-                    continue;
-                }
-                socket.ws.send(_O);
-            }
-        }
-        catch(E) {
-            throw E;
-        }
     }
 
 }
@@ -368,20 +429,8 @@ class Socket extends events {
      * @param {Object|Void 0} data
      * @return void 0
      */
-    send(eventName,data = {}) {
-        let _O = {
-            event: eventName,
-            data
-        }; 
-    
-        try {
-            _O = JSON.stringify(_O);
-        }
-        catch(E) {
-            throw E;
-        }
-        EventsObserver.emit('send',_O);
-        this.ws.send(_O);
+    send(eventName,data) {
+        new Message(eventName,data).publish(this);
     }
     
 
@@ -576,7 +625,7 @@ Server.EventsObserver = EventsObserver;
 module.exports = {
     Server,
     Socket,
-    Event,
+    Message,
     SocketsPools,
     Room
 };
