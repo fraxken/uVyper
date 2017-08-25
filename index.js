@@ -278,7 +278,7 @@ class Socket extends events {
         if('undefined' === typeof(uSocket)) {
             throw new Error('Undefined uWS socket!');
         }
-
+        // Define class properties
         this.ws = uSocket;
         this.id = uuid.v1();
         this.rooms = new Set();
@@ -287,27 +287,28 @@ class Socket extends events {
          * Handle raw message from original uSocket to transform it into structured message!
          */
         this.ws.on('message',(buf) => {
+            let jsonMessage;
             try {
-                var jsonMessage = JSON.parse(buf.toString());
+                jsonMessage = JSON.parse(buf.toString());
             }
             catch(E) {
-                // Emit raw message!
+                // Fallback Emit raw message!
                 this.emit('message',buf);
                 return;
             }
 
-            const { event, data = {}, roomName } = jsonMessage;
-            if('undefined' === typeof(event)) {
+            const { event: eventName, data = {}, roomName } = jsonMessage;
+            if('undefined' === typeof(eventName)) {
                 return;
             }
 
             // TODO: Review broadcast!
             if('undefined' === typeof(roomName)) {
-                this.emit(event,data);
+                this.emit(eventName,data);
             }
-            else if(this.rooms.has(roomName)){
+            else if(this.rooms.has(roomName) === true){
                 data.from = this.id;
-                this.rooms.get(roomName).broadcast(event,data,[this.id]);
+                this.rooms.get(roomName).broadcast(eventName,data,[this.id]);
             }
         });
     }
