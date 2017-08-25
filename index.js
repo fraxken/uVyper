@@ -78,7 +78,7 @@ class SocketMap extends Map {
     /*
      * Broadcast event to all sockets!
      */
-    broadcast(event,data = {},exclude = []) {
+    broadcast(event,data = {},excludedIDs = []) {
         if('undefined' === typeof(event)) {
             throw new Error('Impossible to broadcast to an undefined event!');
         }
@@ -88,7 +88,7 @@ class SocketMap extends Map {
             data
         };
 
-        const excludeSet = new Set(exclude);
+        const excludeSet = new Set(excludedIDs);
         try {
             _O = JSON.stringify(_O);
             for(let [id,socket] of this) {
