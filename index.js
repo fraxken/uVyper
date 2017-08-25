@@ -76,6 +76,19 @@ class SocketsPools extends Map {
     }
 
     /*
+     * Get a specific Socket 
+     * @function SocketsPools.get 
+     * @param {Socket|String} socket
+     * return Socket;
+     */
+    get(socket) {
+        if('undefined' === typeof(socket)) {
+            throw new TypeError('Cannot get undefined socket');
+        }
+        return this.get(socket instanceof Socket ? socket.id : socket);
+    }
+
+    /*
      * Return a array of socketsHandler!
      * @function SocketsPools.toArray
      * @return Socket[]
