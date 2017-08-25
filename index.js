@@ -3,6 +3,37 @@ const Events = require('events');
 const uuid = require('uuid');
 
 /*
+ * uVyper core
+ */
+class Core extends Events {
+
+    constructor() {
+        super();
+        this.rooms = new Set();
+    }
+
+    addRoom(room) {
+        if(room instanceof Room === false) {
+            throw new TypeError('Not a room Object');
+        }
+        if(this.rooms.has(room) === true) return;
+        this.emit('new_room',room);
+        this.rooms.add(room);
+    }
+
+    deleteRoom(room) {
+        if(room instanceof Room === false) {
+            throw new TypeError('Not a room Object');
+        }
+        if(this.rooms.has(room) === false) return;
+        this.emit('delete_room',room);
+        this.rooms.delete(room);
+    }
+
+}
+const EventsObserver = new Core(); // Create EventsObserver instance
+
+/*
  * SocketMap with broadcast events...
  */
 class SocketMap extends Map {
@@ -55,7 +86,7 @@ class SocketMap extends Map {
             event,
             roomName: this.room,
             data
-        }; 
+        };
 
         const excludeSet = new Set(exclude);
         try {
@@ -79,40 +110,43 @@ class SocketMap extends Map {
  */
 class Room extends Events {
 
-    constructor(name) {
+    constructor(roomName) {
         super();
-        this.name = name;
-        this.sockets = new SocketMap([],name);
+        if('undefined' === typeof(roomName)) {
+            throw new TypeError('Undefined roomName');
+        }
+        this.name = roomName;
+        this.sockets = new SocketMap([],roomName);
         this.alive = true;
-        Room.rooms.add(this);
+        EventsObserver.addRoom(this);
     }
 
     /*
      * Add a new socket to the room!
      */
-    addSocket(client) {
+    addSocket(socket) {
         if(this.alive === false) return;
-        if(client instanceof SocketHandler === false) {
-            throw new TypeError('Invalid client type');
+        if(socket instanceof SocketHandler === false) {
+            throw new TypeError('Invalid socket type');
         }
-        if(this.sockets.has(client.id) === true) return;
-        client.rooms.add(this);
-        this.sockets.add(client);
-        this.emit('connection',client);
+        if(this.sockets.has(socket.id) === true) return;
+        socket.rooms.add(this);
+        this.sockets.add(socket);
+        this.emit('connection',socket);
     }
 
     /*
      * Delete a socket from the room!
      */
-    deleteSocket(client) {
-        if(client instanceof SocketHandler === false) {
-            throw new TypeError('Invalid client type');
+    deleteSocket(socket) {
+        if(socket instanceof SocketHandler === false) {
+            throw new TypeError('Invalid socket type');
         }
-        if(this.sockets.has(client.id) === false) return;
+        if(this.sockets.has(socket.id) === false) return;
         
-        client.rooms.delete(this);
-        this.sockets.delete(client.id);
-        this.emit('disconnect',client);
+        socket.rooms.delete(this);
+        this.sockets.delete(socket.id);
+        this.emit('disconnect',socket);
     }
 
     /*
@@ -130,11 +164,10 @@ class Room extends Events {
     destroy() {
         this.alive = false;
         this.disconnectAll();
-        Room.rooms.delete(this);
+        EventsObserver.deleteRoom(this);
     }
 
 }
-Room.rooms = new Set();
 
 /*
  * Send function
@@ -151,6 +184,7 @@ function sendMessage(event,data) {
     catch(E) {
         return;
     }
+    EventsObserver.emit('send',_O);
     this.ws.send(_O);
 }
 
@@ -191,7 +225,7 @@ class SocketHandler extends Events {
                 this.rooms.get(roomName).broadcast(event,data,[this.id]);
             }
         });
-        this.send = sendMessage;
+        this.send = sendMessage.bind(this);
     }
 
     /* 
@@ -260,6 +294,7 @@ class Server extends Events {
 
     constructor({port = 3000}) {
         super({ port });
+        this.id = uuid.v4();
         this.sockets = new SocketMap();
         this.wss = new SocketServer({port});
         this.wss.on('connection', (ws) => {
@@ -274,9 +309,15 @@ class Server extends Events {
                 socket = undefined;
             });
         });
+
+        this.wss.on('error',(err) => {
+            this.emit('error',err);
+        });
+        EventsObserver.emit('server_connected',this.id);
     }
 
 }
+Server.EventsObserver = EventsObserver;
 
 // Export class!
 module.exports = {
