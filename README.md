@@ -9,6 +9,7 @@ npm install uvyper --save
 
 - TLS Support ? (Work in progress).
 - Better parsing in/out of structured events.
+- Expose a stringify method ? (For native needs!)
 
 # Documentation
 
