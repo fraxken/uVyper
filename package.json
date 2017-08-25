@@ -1,7 +1,7 @@
 {
-  "name": "fastsocket",
+  "name": "uvyper",
   "version": "1.0.0",
-  "description": "Node.JS FastSocket (UWS implementation with Rooms & better event handling)",
+  "description": "Node.JS uVyper (UWS implementation with Rooms)",
   "main": "index.js",
   "scripts": {
     "test": "node tests/server.js"
