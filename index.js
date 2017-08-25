@@ -514,6 +514,26 @@ class Server extends events {
         }
         this.httpsServer.listen(port);
     }
+    
+    /*
+     * Native broadcast to all connected sockets
+     * @function Server.broadcast
+     * @param {String} message
+     * @return void 0
+     */
+    broadcast(message) {
+        this.wss.broadcast(message);
+    }
+
+    /*
+     * Close websocket server!
+     * @function Server.close
+     * @param {Callback} cb
+     * @return void 0
+     */
+    close(cb) {
+        this.wss.close(cb);
+    }
 
 }
 // Attach EventsObserver Object to Server!
