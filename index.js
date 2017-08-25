@@ -9,25 +9,25 @@ class Core extends Events {
 
     constructor() {
         super();
-        this.rooms = new Set();
+        this.rooms = new Map();
     }
 
     addRoom(room) {
         if(room instanceof Room === false) {
             throw new TypeError('Not a room Object');
         }
-        if(this.rooms.has(room) === true) return;
+        if(this.rooms.has(room.name) === true) return;
         this.emit('new_room',room);
-        this.rooms.add(room);
+        this.rooms.set(room.name,room);
     }
 
     deleteRoom(room) {
         if(room instanceof Room === false) {
             throw new TypeError('Not a room Object');
         }
-        if(this.rooms.has(room) === false) return;
+        if(this.rooms.has(room.name) === false) return;
         this.emit('delete_room',room);
-        this.rooms.delete(room);
+        this.rooms.delete(room.name);
     }
 
 }
