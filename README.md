@@ -5,14 +5,19 @@ Node.JS µVyper is an high level implementation of µWebSockets with rooms and p
 npm install uvyper --save
 ```
 
-# Roadmap 1.x
+**run tests :**
 
-- TLS Support ? (Work in progress).
-- Write tests with assert & mocha ?
+```
+npm test 
+```
 
-# Roadmap 2.x 
+# Roadmap 
 
-- HA Support 
+- SSL Support
+- Write tests with assert & mocha
+- Adapter support (uvyper-redis)
+- Client (ES5) lib ?
+
 
 # Documentation
 
