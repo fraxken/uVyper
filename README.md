@@ -8,8 +8,6 @@ npm install uvyper --save
 # Roadmap 1.x
 
 - TLS Support ? (Work in progress).
-- Expose a stringify method ? (Should be cool to use native broadcast and native send...)
-- Write a client (find a way...) 
 - Write tests with assert & mocha ?
 
 # Roadmap 2.x 

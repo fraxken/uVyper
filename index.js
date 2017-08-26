@@ -54,6 +54,25 @@ class Controller extends events {
 }
 const EventsObserver = new Controller(); // Create EventsObserver instance
 
+/*
+ * Built-in stringify message!
+ * @function Stringify
+ * @param {String} event
+ * @param {Object} data
+ */
+function Stringify(event,data = {}) {
+    if('string' !== typeof(event)) {
+        throw new TypeError('event argument should be a valid string');
+    }
+    try {
+        const _o = JSON.stringify({event,data});
+        return _o;
+    }
+    catch(E) {
+        throw E;
+    }
+}
+
 
 /*
  * uVyper Event message!
@@ -117,13 +136,9 @@ class Message extends events {
 
         return new Promise((resolve,reject) => {
             if(source instanceof Socket === true) {
-                let messageObject = {
-                    event: this.eventName,
-                    data
-                }; 
-            
+                let messageObject;
                 try {
-                    messageObject = JSON.stringify(messageObject);
+                    messageObject = Stringify(this.eventName,data);
                 }
                 catch(E) {
                     reject(E);
@@ -630,5 +645,6 @@ module.exports = {
     Socket,
     Message,
     SocketsPools,
-    Room
+    Room,
+    Stringify
 };
