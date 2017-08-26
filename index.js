@@ -5,11 +5,12 @@ const https = require('https');
 const uuid = require('uuid');
 
 /*
- * uVyper core. Native implementation to catch all events for the Redis support!
- * @class Core
- * @extended Events
+ * uVyper Controller. Native implementation to catch all events for the Redis support!
+ * @class Controller
+ * @extended events
  * 
- * @param {Map} rooms
+ * @property {Map} rooms
+ * @property {Array} socketsServer
  */
 class Controller extends events {
 
@@ -19,11 +20,28 @@ class Controller extends events {
     constructor() {
         super();
         this.rooms = new Map();
+        this.socketsServer = [];
+    }
+
+    /*
+     * Get a socketServer with the array position
+     * @function Controller.getServer
+     * @param {Number} slotId
+     * @return Server
+     */
+    getServer(slotId = 0) {
+        if('number' !== typeof(slotId)) {
+            throw new TypeError('Invalid slotId type!');
+        }
+        if('undefined' === typeof(this.socketsServer[slotId])) {
+            throw new RangeError('Socket server not found in the range of slotId');
+        }
+        return this.socketsServer[slotId];
     }
 
     /*
      * add a new Room
-     * @function Core.addRoom
+     * @function Controller.addRoom
      * @param {Room} room
      * @return void 0
      */
@@ -38,7 +56,7 @@ class Controller extends events {
 
     /*
      * delete a Room (that you joined before)
-     * @function Core.deleteRoom
+     * @function Controller.deleteRoom
      * @param {Room} room
      * @return void 0
      */
@@ -127,41 +145,53 @@ class Message extends events {
      * return void 0
      */
     publish(source,data) {
-        if('undefined' === typeof(source)) {
-            throw new TypeError('Undefined source');
-        }
-        if('undefined' !== typeof(data)) {
-            data = Object.assign(this.sourceData,data);
-        }
-
         return new Promise((resolve,reject) => {
+            if('undefined' === typeof(source)) {
+                source = EventsObserver.getServer(0);
+            }
+            else if('object' === typeof(source)) {
+                data = source;
+                source = EventsObserver.getServer(0);
+            }
+            {
+                const tData = typeof(data);
+                if('undefined' !== tData && 'object' === tData) {
+                    data = Object.assign(this.sourceData,data);
+                }
+            }
             if(source instanceof Socket === true) {
-                let messageObject;
                 try {
-                    messageObject = Stringify(this.eventName,data);
+                    const messageObject = Stringify(this.eventName,data);
+                    EventsObserver.emit('send',messageObject);
+                    source.ws.send(messageObject);
+                    resolve();
                 }
                 catch(E) {
                     reject(E);
                 }
-                EventsObserver.emit('send',messageObject);
-                source.ws.send(messageObject);
-                resolve();
             }
-            else if(source instanceof Server === true || source instanceof Room === true) {
-                let messageObject = {
-                    event: this.eventName,
-                    data
-                };
-                if(source instanceof Room === true) {
-                    messageObject.roomName = source.sockets.room;
-                }
-    
+            else if(source instanceof Server === true) {
                 try {
-                    messageObject = JSON.stringify(messageObject);
+                    const messageObject = Stringify(this.eventName,data);
                     for(let [id,socket] of source) {
-                        if(this.exclude.has(id)) {
-                            continue;
-                        }
+                        if(this.exclude.has(id)) continue;
+                        socket.ws.send(messageObject);
+                    }
+                    resolve();
+                }
+                catch(E) {
+                    reject(E);
+                }
+            }
+            else if(source instanceof Room === true) {
+                try {
+                    const messageObject = JSON.stringify({
+                        event: this.eventName,
+                        roomName: source.sockets.room,
+                        data
+                    });
+                    for(let [id,socket] of source) {
+                        if(this.exclude.has(id)) continue;
                         socket.ws.send(messageObject);
                     }
                     resolve();
@@ -596,6 +626,7 @@ class Server extends events {
         this.wss.on('listening',function() {
             EventsObserver.emit('server_connected',this.id);
         });
+        EventsObserver.socketServer.push(this);
     }
 
     /*

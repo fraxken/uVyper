@@ -12,7 +12,6 @@ npm install uvyper --save
 
 # Roadmap 2.x 
 
-- Better parsing in/out of structured events.
 - HA Support 
 
 # Documentation
