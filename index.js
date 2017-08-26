@@ -565,6 +565,7 @@ const IServerConstructor = {
  * @property {uws.Server} wss
  * @property {Boolean} ssl
  * @property {Https.Server} httpsServer
+ * @property {Any} adapter
  * 
  * @event 'connection' {
  *     @param {Socket} socket
@@ -627,6 +628,23 @@ class Server extends events {
             EventsObserver.emit('listening',this.id);
         });
         EventsObserver.socketsServer.push(this);
+    }
+
+    /*
+     * Set a adapter
+     * @function Server.setAdapter
+     * @param {Any} AdapterInstance
+     * @return void 0
+     */
+    async setAdapter(AdapterInstance) {
+        if('undefined' === typeof(AdapterInstance)) {
+            throw new TypeError('Undefined adapter');
+        }
+        if('undefined' !== typeof(this.adapter)) {
+            throw new Error('Adapter is already defined!');
+        }
+        await AdapterInstance.init(EventsObserver);
+        this.adapter = AdapterInstance;
     }
 
     /*
