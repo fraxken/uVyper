@@ -1,5 +1,5 @@
 // Require dependencies & npm packages!
-const { Server: SocketServer } = require('uws');
+const uws = require('uws');
 const events = require('events');
 const https = require('https');
 const uuid = require('uuid');
@@ -513,6 +513,7 @@ const IServerConstructor = {
 /* 
  * µWebSockets Server interface
  * @class Server
+ * @extended events
  * 
  * @property {String} id
  * @property {SocketsPools} sockets
@@ -551,10 +552,10 @@ class Server extends events {
             this.httpsServer = https.createServer({key: options.key,cert: options.cert}, function(request,response) {
                 response.end();
             }).listen(443);
-            this.wss = new SocketServer({ port: 443, server: this.httpsServer });
+            this.wss = new uws.Server({ port: 443, server: this.httpsServer });
         }
         else {
-            this.wss = new SocketServer({ port: options.port });
+            this.wss = new uws.Server({ port: options.port });
         }
         this.wss.on('connection', (ws) => {
             let socket = new Socket(ws);
@@ -625,6 +626,7 @@ Server.EventsObserver = EventsObserver;
  */
 module.exports = {
     Server,
+    Client: uws,
     Socket,
     Message,
     SocketsPools,
