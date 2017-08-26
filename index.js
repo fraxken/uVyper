@@ -147,11 +147,12 @@ class Message extends events {
     publish(source,data) {
         return new Promise((resolve,reject) => {
             if('undefined' === typeof(source)) {
-                source = EventsObserver.getServer(0);
-            }
-            else if('object' === typeof(source)) {
-                data = source;
-                source = EventsObserver.getServer(0);
+                try {
+                    source = EventsObserver.getServer(0);
+                }
+                catch(E) {
+                    reject(E);
+                }
             }
             {
                 const tData = typeof(data);
