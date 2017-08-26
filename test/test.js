@@ -1,9 +1,34 @@
 const assert = require('assert');
+const {Server,SocketsPools,Client,Message} = require('../index.js');
 
-describe('Array', function() {
-    describe('#indexOf()', function() {
-        it('should return -1 when the value is not present', function() {
-            assert.equal(-1, [1,2,3].indexOf(4));
+const WSServer = new Server({port: 3000});
+
+describe('uVyper Server properties tests...', function() {
+    describe('WSServer.id',function() {
+        it('should be a string', function() {
+            assert.strictEqual('string', typeof(WSServer.id));
         });
     });
+
+    describe('WSServer.ssl',function() {
+        it('should be a boolean', function() {
+            assert.strictEqual('boolean', typeof(WSServer.ssl));
+        });
+    });
+
+    describe('WSServer.sockets',function() {
+        it('should be instanceof SocketsPools', function() {
+            assert.strictEqual( true , WSServer.sockets instanceof SocketsPools);
+        });
+    });
+
+    describe('WSServer.wss',function() {
+        it('should be instanceof Client.Server', function() {
+            assert.strictEqual( true , WSServer.wss instanceof Client.Server);
+        });
+    });
+});
+
+describe('uVyper Server events tests...', function() {
+    
 });
