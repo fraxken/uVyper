@@ -624,9 +624,9 @@ class Server extends events {
 
         // When the uWebSocket server is listening!
         this.wss.on('listening',function() {
-            EventsObserver.emit('server_connected',this.id);
+            EventsObserver.emit('listening',this.id);
         });
-        EventsObserver.socketServer.push(this);
+        EventsObserver.socketsServer.push(this);
     }
 
     /*
