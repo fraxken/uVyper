@@ -645,7 +645,7 @@ class Server extends events {
         if('undefined' !== typeof(this.adapter)) {
             throw new Error('Adapter is already defined!');
         }
-        await AdapterInstance.init(EventsObserver);
+        await AdapterInstance.init(EventsObserver,this);
         this.adapter = AdapterInstance;
     }
 
@@ -697,5 +697,6 @@ module.exports = {
     Message,
     SocketsPools,
     Room,
+    Controller,
     Stringify
 };
