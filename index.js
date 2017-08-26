@@ -111,7 +111,7 @@ class Message extends events {
      */
     constructor(eventName,sourceData = {},exclude = []) {
         super();
-        if('string' !== typeof(name)) {
+        if('string' !== typeof(eventName)) {
             throw new TypeError('Invalid name type!');
         }
         this.eventName = eventName;
@@ -408,6 +408,7 @@ class Socket extends events {
          * Handle raw message from original uSocket to transform it into structured message!
          */
         this.ws.on('message',(buf) => {
+            EventsObserver.emit('message',buf);
             let jsonMessage;
             try {
                 jsonMessage = JSON.parse(buf.toString());
