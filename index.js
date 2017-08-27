@@ -425,7 +425,7 @@ class Socket extends events {
             }
             else if(this.rooms.has(roomName) === true){
                 data.from = this.id;
-                this.rooms.get(roomName).broadcast(eventName,data,[this.id]);
+                new Message(eventName,data).exclude(this.id).publish(this.rooms.get(roomName));
             }
         });
     }
