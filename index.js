@@ -82,13 +82,7 @@ function Stringify(event,data = {}) {
     if('string' !== typeof(event)) {
         throw new TypeError('event argument should be a valid string');
     }
-    try {
-        const _o = JSON.stringify({event,data});
-        return _o;
-    }
-    catch(E) {
-        throw E;
-    }
+    return JSON.stringify({event,data});
 }
 
 
