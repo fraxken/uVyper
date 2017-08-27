@@ -114,6 +114,19 @@ class Message extends events {
     }
 
     /*
+     * Set from header
+     * @function Message.id
+     * @param {String} socketId
+     * return void 0
+     */
+    id(socketId) {
+        if('string' !== typeof(socketId)) {
+            throw new TypeError('Invalid type for socketId');
+        }
+        this.sourceData.from = socketId;
+    }
+
+    /*
      * Exclude some socket/socket.id from the message
      * @function Message.exclude
      * @param {Socket|String} socket
@@ -136,7 +149,7 @@ class Message extends events {
      * @function Message.publish
      * @param {Socket|Server|Room} source
      * @param {Object} data
-     * return void 0
+     * return Promise
      */
     publish(source,data) {
         return new Promise((resolve,reject) => {
@@ -148,16 +161,24 @@ class Message extends events {
                     reject(E);
                 }
             }
+
             {
                 const tData = typeof(data);
                 if('undefined' !== tData && 'object' === tData) {
                     data = Object.assign(this.sourceData,data);
                 }
             }
-            if(source instanceof Socket === true) {
+
+            if('string' === typeof(source)) {
+                EventsObserver.emit('send',{
+                    event: this.eventName,
+                    data,
+                    source
+                });
+            }
+            else if(source instanceof Socket === true) {
                 try {
                     const messageObject = Stringify(this.eventName,data);
-                    EventsObserver.emit('send',messageObject);
                     source.ws.send(messageObject);
                     resolve();
                 }
@@ -168,6 +189,7 @@ class Message extends events {
             else if(source instanceof Server === true) {
                 try {
                     const messageObject = Stringify(this.eventName,data);
+                    EventsObserver.emit('broadcast',messageObject);
                     for(let [id,socket] of source) {
                         if(this.exclude.has(id)) continue;
                         socket.ws.send(messageObject);
@@ -179,21 +201,14 @@ class Message extends events {
                 }
             }
             else if(source instanceof Room === true) {
-                try {
-                    const messageObject = JSON.stringify({
-                        event: this.eventName,
-                        roomName: source.sockets.room,
-                        data
+                for(let [id] of source) {
+                    if(this.exclude.has(id)) continue;
+                    data.room = source.name;
+                    new Message(this.eventName,data).publish(id).catch( E => {
+                        this.emit('error',E);
                     });
-                    for(let [id,socket] of source) {
-                        if(this.exclude.has(id)) continue;
-                        socket.ws.send(messageObject);
-                    }
-                    resolve();
                 }
-                catch(E) {
-                    reject(E);
-                }
+                resolve();
             }
             else {
                 reject('Unknow source type');
@@ -234,7 +249,7 @@ class SocketsPools extends Map {
         if('undefined' === typeof(socket)) {
             throw new TypeError('Cannot get undefined socket');
         }
-        return this.get(socket instanceof Socket ? socket.id : socket);
+        return this.get(socket instanceof Socket === true ? socket.id : socket);
     }
 
         /*
@@ -639,7 +654,7 @@ class Server extends events {
         if('undefined' !== typeof(this.adapter)) {
             throw new Error('Adapter is already defined!');
         }
-        await AdapterInstance.init(EventsObserver,this);
+        await AdapterInstance.init(this);
         this.adapter = AdapterInstance;
     }
 
