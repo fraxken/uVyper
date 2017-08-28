@@ -32,7 +32,10 @@ class Controller extends events {
             throw new TypeError('Not a room Object');
         }
         if(this.rooms.has(room.name) === true) return;
-        this.emit('new_room',room);
+        this.emit('room',{
+            action: 'add',
+            room
+        });
         this.rooms.set(room.name,room);
     }
 
@@ -47,7 +50,10 @@ class Controller extends events {
             throw new TypeError('Not a room Object');
         }
         if(this.rooms.has(room.name) === false) return;
-        this.emit('delete_room',room);
+        this.emit('room',{
+            action: 'delete',
+            room
+        });
         this.rooms.delete(room.name);
     }
 
@@ -126,7 +132,7 @@ class Message {
         }
 
         if('string' === typeof(source)) {
-            EventsController.emit('send',{
+            EventsController.emit('broadcast',{
                 event: this.eventName,
                 data,
                 source
@@ -137,8 +143,12 @@ class Message {
             source.ws.send(messageObject);
         }
         else if(source instanceof Server === true) {
+            EventsController.emit('broadcast',{
+                event: this.eventName,
+                data,
+                source
+            });
             const messageObject = JSON.stringify({event: this.eventName,data});
-            EventsController.emit('broadcast',messageObject);
             for(let [id,socket] of source) {
                 if(this.exclude.has(id)) continue;
                 socket.ws.send(messageObject);
