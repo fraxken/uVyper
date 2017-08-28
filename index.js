@@ -73,29 +73,14 @@ class Controller extends events {
 const EventsObserver = new Controller(); // Create EventsObserver instance
 
 /*
- * Built-in stringify message!
- * @function Stringify
- * @param {String} event
- * @param {Object} data
- */
-function Stringify(event,data = {}) {
-    if('string' !== typeof(event)) {
-        throw new TypeError('event argument should be a valid string');
-    }
-    return JSON.stringify({event,data});
-}
-
-
-/*
  * uVyper Event message!
  * @class Message
- * @extended Events
  * 
  * @property {String} eventName
  * @property {Object} sourceData
  * @property {Set} exclude
  */ 
-class Message extends events {
+class Message {
 
     /*
      * @constructor
@@ -104,7 +89,6 @@ class Message extends events {
      * @param {Array} exclude
      */
     constructor(eventName,sourceData = {},exclude = []) {
-        super();
         if('string' !== typeof(eventName)) {
             throw new TypeError('Invalid name type!');
         }
@@ -168,12 +152,12 @@ class Message extends events {
                 });
             }
             else if(source instanceof Socket === true) {
-                const messageObject = Stringify(this.eventName,data);
+                const messageObject = JSON.stringify({event: this.eventName,data});
                 source.ws.send(messageObject);
                 resolve();
             }
             else if(source instanceof Server === true) {
-                const messageObject = Stringify(this.eventName,data);
+                const messageObject = JSON.stringify({event: this.eventName,data});
                 EventsObserver.emit('broadcast',messageObject);
                 for(let [id,socket] of source) {
                     if(this.exclude.has(id)) continue;
@@ -185,8 +169,8 @@ class Message extends events {
                 for(let [id] of source) {
                     if(this.exclude.has(id)) continue;
                     data.room = source.name;
-                    new Message(this.eventName,data).publish(id).catch( E => {
-                        this.emit('error',E);
+                    new Message(this.eventName,data).publish(id).catch( () => {
+                        // Ignore
                     });
                 }
                 resolve();
@@ -612,6 +596,5 @@ module.exports = {
     Socket,
     Message,
     Room,
-    Controller,
-    Stringify
+    Controller
 };
