@@ -565,7 +565,7 @@ class Server extends events {
 
 }
 Server.Default = void 0;
-Server.EventsObserver = EventsController;
+Server.Events = EventsController;
 
 /*
  * Export all core class!
