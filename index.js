@@ -153,7 +153,7 @@ class Message {
                 source: 'Server'
             });
             const messageObject = JSON.stringify({event: this.eventName,data});
-            for(let [id,socket] of source) {
+            for(let [id,socket] of source.sockets) {
                 if(this.exclude.has(id)) continue;
                 socket.ws.send(messageObject);
             }
@@ -165,7 +165,7 @@ class Message {
                 source: 'Room',
                 source_id: source.name
             };
-            for(let [id] of source) {
+            for(let [id] of source.sockets) {
                 if(this.exclude.has(id)) continue;
                 EventsController.emit('message',messageObject);
             }
