@@ -73,6 +73,7 @@ const EventsController = new Controller();
  * @property {String} eventName
  * @property {Object} sourceData
  * @property {Set} exclude
+ * @property {Boolean} pEvent
  */ 
 class Message {
 
@@ -89,19 +90,31 @@ class Message {
         this.eventName = eventName;
         this.sourceData = sourceData;
         this.exclude = new Set(exclude);
+        this.pEvent = true;
+    }
+
+    /*
+     * Put off publishing of event to the controller
+     * @function Method.off 
+     * return Message
+     */
+    off() {
+        this.pEvent = false;
+        return this;
     }
 
     /*
      * Set from header
      * @function Message.id
      * @param {String} socketId
-     * return void 0
+     * return Message
      */
     id(socketId) {
         if('string' !== typeof(socketId)) {
             throw new TypeError('Invalid type for socketId');
         }
         this.sourceData.from = socketId;
+        return this;
     }
 
     /*
@@ -136,6 +149,7 @@ class Message {
         data = Object.assign(this.sourceData,data);
 
         if('string' === typeof(source)) {
+            if(this.pEvent === false) return;
             EventsController.emit('message',{
                 event: this.eventName,
                 data,
@@ -147,11 +161,13 @@ class Message {
             source.ws.send(JSON.stringify({event: this.eventName,data}));
         }
         else if(source instanceof Server === true) {
-            EventsController.emit('message',{
-                event: this.eventName,
-                data,
-                source: 'Server'
-            });
+            if(this.pEvent === true) {
+                EventsController.emit('message',{
+                    event: this.eventName,
+                    data,
+                    source: 'Server'
+                });
+            }
             const messageObject = JSON.stringify({event: this.eventName,data});
             for(let [id,socket] of source.sockets) {
                 if(this.exclude.has(id)) continue;
@@ -165,9 +181,13 @@ class Message {
                 source: 'Room',
                 source_id: source.name
             };
-            for(let [id] of source.sockets) {
+            const strMsg = JSON.stringify(messageObject);
+            for(let [id,socket] of source.sockets) {
                 if(this.exclude.has(id)) continue;
-                EventsController.emit('message',messageObject);
+                if(this.pEvent === true) {
+                    EventsController.emit('message',messageObject);
+                }
+                socket.ws.send(strMsg);
             }
         }
         else {
