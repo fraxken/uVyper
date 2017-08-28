@@ -1,5 +1,5 @@
 # uVyper
-Node.JS µVyper is an high level implementation of µWebSockets with rooms and provide simpler messages handling.
+Node.JS µVyper is an high level implementation of µWebSockets binding that bring rooms and provide simpler messages handling like socket.io (A more friendly-user version with an high-availability adapter support).
 
 ```
 npm install uvyper --save
