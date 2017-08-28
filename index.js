@@ -154,19 +154,10 @@ class Message extends events {
     publish(source,data) {
         return new Promise((resolve,reject) => {
             if('undefined' === typeof(source)) {
-                try {
-                    source = EventsObserver.getServer(0);
-                }
-                catch(E) {
-                    reject(E);
-                }
+                source = EventsObserver.getServer(0);
             }
-
-            {
-                const tData = typeof(data);
-                if('undefined' !== tData && 'object' === tData) {
-                    data = Object.assign(this.sourceData,data);
-                }
+            if('undefined' !== typeof(data) && 'object' === typeof(data)) {
+                data = Object.assign(this.sourceData,data);
             }
 
             if('string' === typeof(source)) {
@@ -177,28 +168,18 @@ class Message extends events {
                 });
             }
             else if(source instanceof Socket === true) {
-                try {
-                    const messageObject = Stringify(this.eventName,data);
-                    source.ws.send(messageObject);
-                    resolve();
-                }
-                catch(E) {
-                    reject(E);
-                }
+                const messageObject = Stringify(this.eventName,data);
+                source.ws.send(messageObject);
+                resolve();
             }
             else if(source instanceof Server === true) {
-                try {
-                    const messageObject = Stringify(this.eventName,data);
-                    EventsObserver.emit('broadcast',messageObject);
-                    for(let [id,socket] of source) {
-                        if(this.exclude.has(id)) continue;
-                        socket.ws.send(messageObject);
-                    }
-                    resolve();
+                const messageObject = Stringify(this.eventName,data);
+                EventsObserver.emit('broadcast',messageObject);
+                for(let [id,socket] of source) {
+                    if(this.exclude.has(id)) continue;
+                    socket.ws.send(messageObject);
                 }
-                catch(E) {
-                    reject(E);
-                }
+                resolve();
             }
             else if(source instanceof Room === true) {
                 for(let [id] of source) {
@@ -214,80 +195,6 @@ class Message extends events {
                 reject('Unknow source type');
             }
         });
-    }
-
-}
-
-/*
- * SocketsPools collection that allow user to broadcast events.
- * @class SocketsPools
- * @extended Map
- * 
- * @property {String} room
- */
-class SocketsPools extends Map {
-    
-    /*
-     * @constructor 
-     * @param {Array} DefaultMapValue
-     * @param {String} roomName
-     */
-    constructor(DefaultMapValue,roomName) {
-        super(DefaultMapValue);
-        if('string' === typeof(roomName)) {
-            this.room = roomName;
-        }
-    }
-
-    /*
-     * Get a specific Socket 
-     * @function SocketsPools.get 
-     * @param {Socket|String} socket
-     * return Socket;
-     */
-    get(socket) {
-        if('undefined' === typeof(socket)) {
-            throw new TypeError('Cannot get undefined socket');
-        }
-        return this.get(socket instanceof Socket === true ? socket.id : socket);
-    }
-
-        /*
-     * Add a new socket to the collection (safe way).
-     * @function SocketsPools.add
-     * @param {Socket} socket
-     */
-    add(socket) {
-        if(socket instanceof Socket === false) {
-            throw new TypeError('Not a SocketHandler type!');
-        }
-        this.set(socket.id,socket);
-    }
-
-    /*
-     * Return a array of socketsHandler!
-     * @function SocketsPools.toArray
-     * @return Socket[]
-     */
-    toArray() {
-        const ret = [];
-        for(let [,socket] of this) {
-            ret.push(socket);
-        }
-        return ret;
-    }
-
-    /*
-     * Return a array of all sockets ids!
-     * @function SocketsPools.idsArray
-     * @return String[]
-     */
-    idsArray() {
-        const ret = [];
-        for(let [id,] of this) {
-            ret.push(id);
-        }
-        return ret;
     }
 
 }
@@ -321,7 +228,7 @@ class Room extends events {
             throw new TypeError('Undefined roomName');
         }
         this.name = roomName;
-        this.sockets = new SocketsPools([],roomName);
+        this.sockets = new Map();
         this._alive = true;
         EventsObserver.addRoom(this);
     }
@@ -339,7 +246,7 @@ class Room extends events {
         }
         if(this.sockets.has(socket.id) === true) return;
         socket.rooms.add(this);
-        this.sockets.add(socket);
+        this.sockets.set(socket.id,socket);
         this.emit('connection',socket);
     }
 
@@ -453,10 +360,10 @@ class Socket extends events {
      * @return Promise<Any>
      */
     get(eventName,msTimeOut = Socket.DEFAULT_GET_TIMEOUT) {
-        if('string' !== typeof(eventName)) {
-            throw new TypeError('Invalid eventName type, should be a string!');
-        }
         return new Promise( (resolve,reject) => {
+            if('string' !== typeof(eventName)) {
+                throw new TypeError('Invalid eventName type, should be a string!');
+            }
             const timer = setTimeout(() => {
                 reject();
             },msTimeOut);
@@ -497,11 +404,11 @@ class Socket extends events {
      * @param {Buffer|String} buffer
      * @return void 0
      */
-    sendRaw(buffer) {
-        if('undefined' === typeof(buffer)) {
+    sendRaw(buf) {
+        if('undefined' === typeof(buf)) {
             throw new TypeError('cannot send a undefined buffer!');
         }
-        this.ws.send(buffer);
+        this.ws.send(buf);
     }
 
     /*
@@ -600,7 +507,7 @@ class Server extends events {
         super();
         options = Object.assign(options,{},IServerConstructor);
         this.id = uuid.v4();
-        this.sockets = new SocketsPools();
+        this.sockets = new Map();
         this.ssl = options.ssl;
         if(this.ssl === true) {
             if('undefined' === typeof(options.key) || 'undefined' === typeof(options.cert)) {
@@ -616,7 +523,7 @@ class Server extends events {
         }
         this.wss.on('connection', (ws) => {
             let socket = new Socket(ws);
-            this.sockets.add(socket);
+            this.sockets.set(socket.id,socket);
             this.emit('connection',socket);
 
             socket.on('close', () => {
@@ -704,7 +611,6 @@ module.exports = {
     Client: uws,
     Socket,
     Message,
-    SocketsPools,
     Room,
     Controller,
     Stringify
