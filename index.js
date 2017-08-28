@@ -132,7 +132,7 @@ class Message {
         }
 
         if('string' === typeof(source)) {
-            EventsController.emit('broadcast',{
+            EventsController.emit('message',{
                 event: this.eventName,
                 data,
                 source
@@ -143,7 +143,7 @@ class Message {
             source.ws.send(messageObject);
         }
         else if(source instanceof Server === true) {
-            EventsController.emit('broadcast',{
+            EventsController.emit('message',{
                 event: this.eventName,
                 data,
                 source
