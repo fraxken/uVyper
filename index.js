@@ -123,13 +123,11 @@ class Message {
      * @param {Object} data
      * return Promise
      */
-    publish(source,data) {
+    publish(source,data = {}) {
         if('undefined' === typeof(source)) {
             source = Server.Default;
         }
-        if('undefined' !== typeof(data) && 'object' === typeof(data)) {
-            data = Object.assign(this.sourceData,data);
-        }
+        data = Object.assign(this.sourceData,data);
 
         if('string' === typeof(source)) {
             EventsController.emit('message',{
