@@ -10,7 +10,6 @@ const uuid = require('uuid');
  * @extended events
  * 
  * @property {Map} rooms
- * @property {Array} socketsServer
  */
 class Controller extends events {
 
@@ -20,23 +19,6 @@ class Controller extends events {
     constructor() {
         super();
         this.rooms = new Map();
-        this.socketsServer = [];
-    }
-
-    /*
-     * Get a socketServer with the array position
-     * @function Controller.getServer
-     * @param {Number} slotId
-     * @return Server
-     */
-    getServer(slotId = 0) {
-        if('number' !== typeof(slotId)) {
-            throw new TypeError('Invalid slotId type!');
-        }
-        if('undefined' === typeof(this.socketsServer[slotId])) {
-            throw new RangeError('Socket server not found in the range of slotId');
-        }
-        return this.socketsServer[slotId];
     }
 
     /*
@@ -70,7 +52,7 @@ class Controller extends events {
     }
 
 }
-const EventsObserver = new Controller(); // Create EventsObserver instance
+const EventsController = new Controller();
 
 /*
  * uVyper Event message!
@@ -137,14 +119,14 @@ class Message {
      */
     publish(source,data) {
         if('undefined' === typeof(source)) {
-            source = EventsObserver.getServer(0);
+            source = Server.Default;
         }
         if('undefined' !== typeof(data) && 'object' === typeof(data)) {
             data = Object.assign(this.sourceData,data);
         }
 
         if('string' === typeof(source)) {
-            EventsObserver.emit('send',{
+            EventsController.emit('send',{
                 event: this.eventName,
                 data,
                 source
@@ -156,7 +138,7 @@ class Message {
         }
         else if(source instanceof Server === true) {
             const messageObject = JSON.stringify({event: this.eventName,data});
-            EventsObserver.emit('broadcast',messageObject);
+            EventsController.emit('broadcast',messageObject);
             for(let [id,socket] of source) {
                 if(this.exclude.has(id)) continue;
                 socket.ws.send(messageObject);
@@ -182,7 +164,7 @@ class Message {
  * @extended events
  * 
  * @property {String} name
- * @property {SocketsPools} sockets
+ * @property {Map} sockets
  * @property {Boolean} _alive
  * 
  * @event 'connection' {
@@ -207,7 +189,7 @@ class Room extends events {
         this.name = roomName;
         this.sockets = new Map();
         this._alive = true;
-        EventsObserver.addRoom(this);
+        EventsController.addRoom(this);
     }
 
     /*
@@ -262,7 +244,7 @@ class Room extends events {
     destroy() {
         this._alive = false;
         this.disconnectAll();
-        EventsObserver.deleteRoom(this);
+        EventsController.deleteRoom(this);
     }
 
 }
@@ -302,7 +284,7 @@ class Socket extends events {
          * Handle raw message from original uSocket to transform it into structured message!
          */
         this.ws.on('message',(buf) => {
-            EventsObserver.emit('message',buf);
+            EventsController.emit('message',buf);
             let jsonMessage;
             try {
                 jsonMessage = JSON.parse(buf.toString());
@@ -344,9 +326,9 @@ class Socket extends events {
             const timer = setTimeout(() => {
                 reject();
             },msTimeOut);
-            this.once(eventName,function(data) {
+            this.once(eventName,function(data = {}) {
                 clearTimeout(timer);
-                resolve(data || {});
+                resolve(data);
             });
         });
     }
@@ -383,7 +365,7 @@ class Socket extends events {
      */
     sendRaw(buf) {
         if('undefined' === typeof(buf)) {
-            throw new TypeError('cannot send a undefined buffer!');
+            throw new TypeError('cannot send an undefined buffer!');
         }
         this.ws.send(buf);
     }
@@ -398,13 +380,14 @@ class Socket extends events {
         if('undefined' === typeof(room)) {
             throw new TypeError('Cannot join an undefined room!');
         }
-        if('string' === typeof(room)) {
-            if(EventsObserver.rooms.has(room) === false) {
+        else if('string' === typeof(room)) {
+            if(EventsController.rooms.has(room) === false) {
                 throw new TypeError(room+' room doesn\'t exist! ');
             }
-            room = EventsObserver.rooms.get(room);
+            room = EventsController.rooms.get(room);
         }
-        else if(room instanceof Room === false) {
+
+        if(room instanceof Room === false) {
             throw new TypeError('Invalid room!');
         }
         room.addSocket(this);
@@ -420,13 +403,14 @@ class Socket extends events {
         if('undefined' === typeof(room)) {
             throw new TypeError('Cannot leave an undefined room!');
         }
-        if('string' === typeof(room)) {
-            if(EventsObserver.rooms.has(room) === false) {
+        else if('string' === typeof(room)) {
+            if(EventsController.rooms.has(room) === false) {
                 throw new TypeError(room+' room doesn\'t exist! ');
             }
-            room = EventsObserver.rooms.get(room);
+            room = EventsController.rooms.get(room);
         }
-        else if(room instanceof Room === false) {
+        
+        if(room instanceof Room === false) {
             throw new TypeError('Invalid room!');
         }
         room.deleteSocket(this);
@@ -447,6 +431,8 @@ Socket.DEFAULT_GET_TIMEOUT = 5000;
  */
 const IServerConstructor = {
     port: 3000,
+    key: void 0,
+    cert: void 0,
     ssl: false
 };
 
@@ -520,9 +506,10 @@ class Server extends events {
 
         // When the uWebSocket server is listening!
         this.wss.on('listening',function() {
-            EventsObserver.emit('listening',this.id);
+            EventsController.emit('listening',this.id);
         });
-        EventsObserver.socketsServer.push(this);
+
+        Server.Default = this;
     }
 
     /*
@@ -577,8 +564,8 @@ class Server extends events {
     }
 
 }
-// Attach EventsObserver Object to Server!
-Server.EventsObserver = EventsObserver;
+Server.Default = void 0;
+Server.EventsObserver = EventsController;
 
 /*
  * Export all core class!
