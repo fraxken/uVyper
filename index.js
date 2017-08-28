@@ -136,49 +136,42 @@ class Message {
      * return Promise
      */
     publish(source,data) {
-        return new Promise((resolve,reject) => {
-            if('undefined' === typeof(source)) {
-                source = EventsObserver.getServer(0);
-            }
-            if('undefined' !== typeof(data) && 'object' === typeof(data)) {
-                data = Object.assign(this.sourceData,data);
-            }
+        if('undefined' === typeof(source)) {
+            source = EventsObserver.getServer(0);
+        }
+        if('undefined' !== typeof(data) && 'object' === typeof(data)) {
+            data = Object.assign(this.sourceData,data);
+        }
 
-            if('string' === typeof(source)) {
-                EventsObserver.emit('send',{
-                    event: this.eventName,
-                    data,
-                    source
-                });
+        if('string' === typeof(source)) {
+            EventsObserver.emit('send',{
+                event: this.eventName,
+                data,
+                source
+            });
+        }
+        else if(source instanceof Socket === true) {
+            const messageObject = JSON.stringify({event: this.eventName,data});
+            source.ws.send(messageObject);
+        }
+        else if(source instanceof Server === true) {
+            const messageObject = JSON.stringify({event: this.eventName,data});
+            EventsObserver.emit('broadcast',messageObject);
+            for(let [id,socket] of source) {
+                if(this.exclude.has(id)) continue;
+                socket.ws.send(messageObject);
             }
-            else if(source instanceof Socket === true) {
-                const messageObject = JSON.stringify({event: this.eventName,data});
-                source.ws.send(messageObject);
-                resolve();
+        }
+        else if(source instanceof Room === true) {
+            for(let [id] of source) {
+                if(this.exclude.has(id)) continue;
+                data.room = source.name;
+                new Message(this.eventName,data).publish(id);
             }
-            else if(source instanceof Server === true) {
-                const messageObject = JSON.stringify({event: this.eventName,data});
-                EventsObserver.emit('broadcast',messageObject);
-                for(let [id,socket] of source) {
-                    if(this.exclude.has(id)) continue;
-                    socket.ws.send(messageObject);
-                }
-                resolve();
-            }
-            else if(source instanceof Room === true) {
-                for(let [id] of source) {
-                    if(this.exclude.has(id)) continue;
-                    data.room = source.name;
-                    new Message(this.eventName,data).publish(id).catch( () => {
-                        // Ignore
-                    });
-                }
-                resolve();
-            }
-            else {
-                reject('Unknow source type');
-            }
-        });
+        }
+        else {
+            throw 'Unknow source type';
+        }
     }
 
 }
@@ -346,7 +339,7 @@ class Socket extends events {
     get(eventName,msTimeOut = Socket.DEFAULT_GET_TIMEOUT) {
         return new Promise( (resolve,reject) => {
             if('string' !== typeof(eventName)) {
-                throw new TypeError('Invalid eventName type, should be a string!');
+                throw new TypeError('Invalid type for eventName, it should be a string!');
             }
             const timer = setTimeout(() => {
                 reject();
