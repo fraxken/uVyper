@@ -10,6 +10,12 @@ const uuid = require('uuid');
  * @extended events
  * 
  * @property {Map} rooms
+ * 
+ * @events [
+ *     send => (buf)
+ *     message => ({event,data,source,source_id})
+ *     room => ({action,room})
+ * ]
  */
 class Controller extends events {
 
@@ -180,13 +186,10 @@ class Message {
  * @property {Map} sockets
  * @property {Boolean} _alive
  * 
- * @event 'connection' {
- *     @param {Socket} socket
- * }
- * 
- * @event 'disconnect' {
- *     @param {Socket} socket
- * }
+ * @events [
+ *     connection => (Socket)
+ *     disconnect => (Socket)
+ * ]
  */
 class Room extends events {
 
@@ -275,7 +278,9 @@ class Room extends events {
  *     @param {String} buffer
  * }
  * 
- * @event 'close' {}
+ * @events [
+ *     close => ()
+ * ]
  */
 class Socket extends events {
 
@@ -461,17 +466,12 @@ const IServerConstructor = {
  * @property {Https.Server} httpsServer
  * @property {Any} adapter
  * 
- * @event 'connection' {
- *     @param {Socket} socket
- * }
- * 
- * @event 'disconnect' {
- *     @param {Socket} socket
- * }
- * 
- * @event 'error' {
- *     @param {ErrorMessage} error
- * }
+ * @events [
+ *     connection => (socket)
+ *     disconnect => (socket)
+ *     error => (errorMessage)
+ *     listening => (Server.id)
+ * ]
  */
 class Server extends events {
 
@@ -481,7 +481,7 @@ class Server extends events {
      */
     constructor(options = {}) {
         super();
-        options = Object.assign(options,{},IServerConstructor);
+        options = Object.assign(IServerConstructor,options);
         this.id = uuid.v4();
         this.sockets = new Map();
         this.ssl = options.ssl;

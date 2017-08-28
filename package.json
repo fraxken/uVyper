@@ -1,6 +1,6 @@
 {
   "name": "uvyper",
-  "version": "1.7.5",
+  "version": "1.7.6",
   "description": "Node.JS uVyper (UWS implementation with Rooms)",
   "main": "index.js",
   "scripts": {
