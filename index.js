@@ -292,7 +292,7 @@ class Socket extends events {
          * Handle raw message from original uSocket to transform it into structured message!
          */
         this.ws.on('message',(buf) => {
-            EventsController.emit('message',buf);
+            EventsController.emit('send',buf);
             let jsonMessage;
             try {
                 jsonMessage = JSON.parse(buf.toString());
