@@ -133,18 +133,18 @@ class Message {
             EventsController.emit('message',{
                 event: this.eventName,
                 data,
-                source
+                source: 'Socket', 
+                source_id: source
             });
         }
         else if(source instanceof Socket === true) {
-            const messageObject = JSON.stringify({event: this.eventName,data});
-            source.ws.send(messageObject);
+            source.ws.send(JSON.stringify({event: this.eventName,data}));
         }
         else if(source instanceof Server === true) {
             EventsController.emit('message',{
                 event: this.eventName,
                 data,
-                source
+                source: 'Server'
             });
             const messageObject = JSON.stringify({event: this.eventName,data});
             for(let [id,socket] of source) {
@@ -153,10 +153,15 @@ class Message {
             }
         }
         else if(source instanceof Room === true) {
+            const messageObject = {
+                event: this.eventName,
+                data,
+                source: 'Room',
+                source_id: source.name
+            };
             for(let [id] of source) {
                 if(this.exclude.has(id)) continue;
-                data.room = source.name;
-                new Message(this.eventName,data).publish(id);
+                EventsController.emit('message',messageObject);
             }
         }
         else {
