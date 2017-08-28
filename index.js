@@ -535,7 +535,7 @@ class Server extends events {
         if('undefined' !== typeof(this.adapter)) {
             throw new Error('Adapter is already defined!');
         }
-        await AdapterInstance.init(this);
+        await AdapterInstance.init(this,Server.Events);
         this.adapter = AdapterInstance;
     }
 
