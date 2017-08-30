@@ -1,6 +1,6 @@
 {
   "name": "uvyper",
-  "version": "1.7.8",
+  "version": "1.7.9",
   "description": "Node.JS uVyper (UWS implementation with Rooms)",
   "main": "index.js",
   "scripts": {
@@ -17,10 +17,11 @@
   },
   "homepage": "https://github.com/fraxken/uWebSocket_rooms#readme",
   "dependencies": {
+    "japa": "^1.0.4",
     "uuid": "^3.1.0",
     "uws": "^8.14.1"
   },
   "devDependencies": {
-    "mocha": "^3.5.0"
+    "tick-id": "^1.0.2"
   }
 }
