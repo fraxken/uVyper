@@ -1,6 +1,7 @@
 const {Server} = require('../index.js');
+const test = require('japa');
 
-function test(strTitle,fn) {
+/*function test(strTitle,fn) {
     return new Promise((resolve,reject) => {
         console.log(`TEST:: ${strTitle}`);
         const timeOut = setTimeout(function() {
@@ -14,14 +15,15 @@ function test(strTitle,fn) {
             fn(done);
         });
     });
-}
+}*/
 
-let WSServer = new Server({port: 3000});
+let WSServer = new Server({
+    port: 3000
+});
 
-test('Server listening',function(done) {
-    WSServer.wss.on('listening',function() {
+test('Server listening',function(assert,done) {
+    WSServer.on('listening',function() {
         console.log('listening triggered!');
         done();
     });
-})
-.catch( E => console.error(E) ); 
+});

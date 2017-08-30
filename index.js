@@ -464,6 +464,7 @@ Socket.DEFAULT_GET_TIMEOUT = 5000;
  * @interface IServerConstructor
  * @param {Number} port
  * @param {Boolean} ssl
+ * @param {Boolean} nextTick
  * @param {String} key
  * @param {String} cert
  */
@@ -471,6 +472,7 @@ const IServerConstructor = {
     port: 3000,
     key: void 0,
     cert: void 0,
+    nextTick: true,
     ssl: false
 };
 
@@ -484,6 +486,9 @@ const IServerConstructor = {
  * @property {uws.Server} wss
  * @property {Boolean} ssl
  * @property {Https.Server} httpsServer
+ * @property {Number} port
+ * @property {String} key
+ * @property {String} cert
  * @property {Any} adapter
  * 
  * @events [
@@ -501,52 +506,12 @@ class Server extends events {
      */
     constructor(options = {}) {
         super();
-        options = Object.assign(IServerConstructor,options);
         this.id = uuid.v4();
         this.sockets = new Map();
-        this.ssl = options.ssl;
-
-        process.nextTick(() =>{
-            if(this.ssl === true) {
-                if('undefined' === typeof(options.key) || 'undefined' === typeof(options.cert)) {
-                    throw new TypeError('Please define a key and cert for SSL');
-                }
-                this.httpsServer = https.createServer({key: options.key,cert: options.cert}, function(request,response) {
-                    response.end();
-                }).listen(443);
-                this.wss = new uws.Server({ port: 443, server: this.httpsServer });
-            }
-            else {
-                this.wss = new uws.Server({ port: options.port });
-            }
-            
-            this.wss.on('connection', (ws) => {
-                let socket = new Socket(ws);
-                this.sockets.set(socket.id,socket);
-                this.emit('connection',socket);
-    
-                socket.on('close', () => {
-                    this.sockets.delete(socket.id);
-                    this.emit('disconnect',socket);
-                    socket = undefined;
-                });
-    
-                ws.on('close',() => {
-                    socket.close();
-                });
-            });
-    
-            this.wss.on('error',(error) => {
-                this.emit('error',error);
-            });
-    
-            // When the uWebSocket server is listening!
-            this.wss.on('listening',() => {
-                this.emit('listening',this.id);
-                EventsController.emit('listening',this.id);
-            });
-        });
-
+        Object.assign(this,IServerConstructor,options);
+        if(this.nextTick === true) {
+            process.nextTick(this.listen.bind(this));
+        }
         Server.Default = this;
     }
 
@@ -568,17 +533,55 @@ class Server extends events {
     }
 
     /*
-     * Listen on a port for the https server 
+     * Listen to a port!
      * @function Server.listen
      * @param {Number} port
      * @return void 0
      */
     listen(port) {
-        if(this.ssl === false) return;
-        if('number' !== typeof(port)) {
-            throw new TypeError('Invalid type for port argument');
+        if(this.ssl === true) {
+            if('undefined' === typeof(this.key) || 'undefined' === typeof(this.cert)) {
+                throw new TypeError('Please define a key and cert for SSL');
+            }
+            this.httpsServer = https.createServer({key: this.key,cert: this.cert}, function(request,response) {
+                response.end();
+            }).listen(443);
+            this.wss = new uws.Server({ port: 443, server: this.httpsServer });
+            this.httpsServer.listen(port);
         }
-        this.httpsServer.listen(port);
+        else {
+            this.wss = new uws.Server({ port: port || this.port });
+        }
+        
+        /*
+         * When socket connect to the server!
+         */
+        this.wss.on('connection', (ws) => {
+            let socket = new Socket(ws);
+            this.sockets.set(socket.id,socket);
+            this.emit('connection',socket);
+
+            socket.on('close', () => {
+                this.sockets.delete(socket.id);
+                this.emit('disconnect',socket);
+                socket = undefined;
+            });
+
+            ws.on('close',() => {
+                socket.close();
+            });
+        });
+
+        // On error...
+        this.wss.on('error',(error) => {
+            this.emit('error',error);
+        });
+
+        // When the uWebSocket server is listening!
+        this.wss.on('listening',() => {
+            this.emit('listening',this.id);
+            EventsController.emit('listening',this.id);
+        });
     }
     
     /*
