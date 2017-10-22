@@ -1,25 +1,19 @@
 // Require dependencies & npm packages!
-const uws = require('uws');
-const events = require('events');
-const https = require('https');
-const uuid = require('uuid');
+const uws       = require('uws');
+const events    = require('events');
+const https     = require('https');
+const uuid      = require('uuid');
 
-/*
+/** 
  * uVyper Controller. Native implementation to catch all events for the Redis support!
  * @class Controller
- * @extended events
+ * @extends events
  * 
  * @property {Map} rooms
- * 
- * @events [
- *     send => (buf)
- *     message => ({event,data,source,source_id})
- *     room => ({action,room})
- * ]
  */
 class Controller extends events {
 
-    /*
+    /**
      * @constructor
      */
     constructor() {
@@ -27,11 +21,11 @@ class Controller extends events {
         this.rooms = new Map();
     }
 
-    /*
+    /**
      * add a new Room
-     * @function Controller.addRoom
+     * @method Controller.addRoom
      * @param {Room} room
-     * @return void 0
+     * @return {void}
      */
     addRoom(room) {
         if(room instanceof Room === false) {
@@ -45,11 +39,11 @@ class Controller extends events {
         this.rooms.set(room.name,room);
     }
 
-    /*
+    /**
      * delete a Room (that you joined before)
-     * @function Controller.deleteRoom
+     * @method Controller.deleteRoom
      * @param {Room} room
-     * @return void 0
+     * @return {void}
      */
     deleteRoom(room) {
         if(room instanceof Room === false) {
@@ -66,48 +60,50 @@ class Controller extends events {
 }
 const EventsController = new Controller();
 
-/*
+/**
  * uVyper Event message!
  * @class Message
  * 
  * @property {String} eventName
  * @property {Object} sourceData
- * @property {Set} exclude
+ * @property {Set<Socket>} exclude
  * @property {Boolean} pEvent
  */ 
 class Message {
 
-    /*
+    /**
      * @constructor
      * @param {String} eventName
      * @param {Object} sourceData
-     * @param {Array} exclude
+     * @param {Array<Socket>} exclude
      */
     constructor(eventName,sourceData = {},exclude = []) {
         if('string' !== typeof(eventName)) {
             throw new TypeError('Invalid name type!');
         }
-        this.eventName = eventName;
+        this.eventName  = eventName;
         this.sourceData = sourceData;
-        this.exclude = new Set(exclude);
-        this.pEvent = true;
+        this.exclude    = new Set(exclude);
+        this.pEvent     = true;
     }
 
-    /*
+    /**
      * Put off publishing of event to the controller
-     * @function Method.off 
-     * return Message
+     * @method Method.off 
+     * @return {Message}
      */
     off() {
         this.pEvent = false;
         return this;
     }
 
-    /*
+    /**
      * Set from header
-     * @function Message.id
+     * @method Message.id
      * @param {String} socketId
-     * return Message
+     * @return {Message}
+     * 
+     * @throws {TypeError}
      */
     id(socketId) {
         if('string' !== typeof(socketId)) {
@@ -117,11 +113,11 @@ class Message {
         return this;
     }
 
-    /*
+    /**
      * Exclude some socket/socket.id from the message
      * @function Message.exclude
-     * @param {Socket|String} socket
-     * return Message
+     * @param {Socket} socket
+     * @return {Message}
      */
     exclude(socket) {
         if(socket instanceof Array === true) {
@@ -135,12 +131,14 @@ class Message {
         return this;
     }
 
-    /*
+    /**
      * Publish a message to a source!
-     * @function Message.publish
+     * @method Message.publish
      * @param {Socket|Server|Room} source
      * @param {Object} data
-     * return Promise
+     * @return {void}
+     * 
+     * @throws {Error}
      */
     publish(source,data = {}) {
         if('undefined' === typeof(source)) {
@@ -191,31 +189,28 @@ class Message {
             }
         }
         else {
-            throw 'Unknow source type';
+            throw new Error('Unknow source type');
         }
     }
 
 }
 
-/* 
+/**
  * µVyper Room
  * @class Room
- * @extended events
+ * @extends events
  * 
  * @property {String} name
  * @property {Map} sockets
  * @property {Boolean} _alive
- * 
- * @events [
- *     connection => (Socket)
- *     disconnect => (Socket)
- * ]
  */
 class Room extends events {
 
-    /*
+    /**
      * @constructor
      * @param {String} roomName
+     * 
+     * @throws {TypeError}
      */
     constructor(roomName) {
         super();
@@ -228,11 +223,13 @@ class Room extends events {
         EventsController.addRoom(this);
     }
 
-    /*
+    /**
      * Add a new socket to the room!
-     * @function Room.addSocket
+     * @method Room.addSocket
      * @param {Socket} socket
-     * @return void 0
+     * @return {void}
+     * 
+     * @throws {TypeError}
      */
     addSocket(socket) {
         if(this._alive === false) return; // Verify if the room is alive!
@@ -245,11 +242,11 @@ class Room extends events {
         this.emit('connection',socket);
     }
 
-    /*
+    /**
      * Delete a socket from the room!
-     * @function Room.deleteSocket
+     * @method Room.deleteSocket
      * @param {Socket} socket
-     * @return void 0
+     * @return {void}
      */
     deleteSocket(socket) {
         if(socket instanceof Socket === false) {
@@ -261,10 +258,10 @@ class Room extends events {
         this.emit('disconnect',socket);
     }
 
-    /*
+    /**
      * Disconnect all sockets connected to the Room.
-     * @function Room.disconnectAll()
-     * @return void 0
+     * @method Room.disconnectAll()
+     * @return {void}
      */
     disconnectAll() {
         for(let [,socket] of this.sockets) {
@@ -272,10 +269,10 @@ class Room extends events {
         }
     }
 
-    /*
+    /**
      * Destroy the whole room (the method will call disconnectAll() method and put alive property to false).
-     * @function Room.destroy 
-     * @return void 0
+     * @method Room.destroy 
+     * @return {void}
      */
     destroy() {
         this._alive = false;
@@ -285,33 +282,27 @@ class Room extends events {
 
 }
 
-/* 
+/** 
  * µWebSockets Socket Proxy
  * @class Socket
- * @extended events
+ * @extends events
  * 
  * @property {String} id
  * @property {Set} rooms
  * @property {uSocket} ws
- * 
- * @event 'message' {
- *     @param {String} buffer
- * }
- * 
- * @events [
- *     close => ()
- * ]
  */
 class Socket extends events {
 
-    /*
+    /**
      * @constructor 
-     * @param {uSocket} uSocket
+     * @param {any} uSocket
+     * 
+     * @throws {TypeError}
      */
     constructor(uSocket) {
         super();
         if('undefined' === typeof(uSocket)) {
-            throw new Error('Undefined uWS socket!');
+            throw new TypeError('Undefined uWS socket!');
         }
         // Define class properties
         this.ws = uSocket;
@@ -349,32 +340,34 @@ class Socket extends events {
         });
     }
 
-    /* 
+    /**
      * Await an event with a timeout catch!
-     * @function Socket.get 
+     * @method Socket.get 
      * @param {String} eventName
      * @param {Number} msTimeOut (default to 5000 ms)
-     * @return Promise<Any>
+     * @return {Promise<any>}
      */
     get(eventName,msTimeOut = Socket.DEFAULT_GET_TIMEOUT) {
         return new Promise( (resolve,reject) => {
             if('string' !== typeof(eventName)) {
                 throw new TypeError('Invalid type for eventName, it should be a string!');
             }
-            const timer = setTimeout(() => {
-                reject();
-            },msTimeOut);
-            this.once(eventName,function(data = {}) {
+            const handler = function(data = {}) {
                 clearTimeout(timer);
                 resolve(data);
-            });
+            };
+            const timer = setTimeout(() => {
+                this.removeListener(eventName,handler);
+                reject();
+            },msTimeOut);
+            this.once(eventName,handler);
         });
     }
 
-    /* 
+    /** 
      * Close the socket.
-     * @function Socket.close
-     * @return void 0
+     * @method Socket.close
+     * @return {void}
      */
     close() {
         this.emit('close');
@@ -383,23 +376,25 @@ class Socket extends events {
         }
     }
 
-    /*
+    /**
      * Send a new structured JSON socket message!
-     * @function Socket.send
+     * @method Socket.send
      * @param {String} eventName
-     * @param {Object|Void 0} data
-     * @return void 0
+     * @param {Object|void} data
+     * @return {Message}
      */
     send(eventName,data) {
-        new Message(eventName,data).publish(this);
+        return new Message(eventName,data).publish(this);
     }
     
 
-    /*
+    /**
      * Send a new raw data (buffer). It's like sending an original uWebSocket message!
-     * @function Socket.sendRaw
+     * @method Socket.sendRaw
      * @param {Buffer|String} buffer
-     * @return void 0
+     * @return {void}
+     * 
+     * @throws {TypeError}
      */
     sendRaw(buf) {
         if('undefined' === typeof(buf)) {
@@ -408,11 +403,13 @@ class Socket extends events {
         this.ws.send(buf);
     }
 
-    /*
+    /**
      * join a new room
-     * @function Socket.join
-     * @param {Room|String} room
-     * @return void 0
+     * @method Socket.join
+     * @param {Room} room
+     * @return {void}
+     * 
+     * @throws {TypeError}
      */
     join(room) {
         if('undefined' === typeof(room)) {
@@ -431,11 +428,13 @@ class Socket extends events {
         room.addSocket(this);
     }
 
-    /*
+    /**
      * leave a room where the current socket is eventually connected.
-     * @function Socket.join
-     * @param {Room|String} room
-     * @return void 0
+     * @method Socket.join
+     * @param {Room} room
+     * @return {void}
+     * 
+     * @throws {TypeError}
      */
     leave(room) {
         if('undefined' === typeof(room)) {
@@ -458,7 +457,7 @@ class Socket extends events {
 // Default timeout in milliseconds of Socket.get method!
 Socket.DEFAULT_GET_TIMEOUT = 5000;
 
-/*
+/**
  * Interface for Server class constructor method.
  * 
  * @interface IServerConstructor
@@ -476,10 +475,10 @@ const IServerConstructor = {
     ssl: false
 };
 
-/* 
+/**
  * µWebSockets Server interface
  * @class Server
- * @extended events
+ * @extends events
  * 
  * @property {String} id
  * @property {SocketsPools} sockets
@@ -490,24 +489,20 @@ const IServerConstructor = {
  * @property {String} key
  * @property {String} cert
  * @property {Any} adapter
- * 
- * @events [
- *     connection => (socket)
- *     disconnect => (socket)
- *     error => (errorMessage)
- *     listening => (Server.id)
- * ]
  */
 class Server extends events {
 
-    /*
+    /**
      * @constructor 
      * @param {IServerConstructor} options
      */
     constructor(options = {}) {
         super();
-        this.id = uuid.v4();
-        this.sockets = new Map();
+        this.id         = uuid.v4();
+        this.sockets    = new Map();
+        this.nextTick   = undefined;
+        this.key        = undefined;
+        this.cert       = undefined;
         Object.assign(this,IServerConstructor,options);
         if(this.nextTick === true) {
             process.nextTick(this.listen.bind(this));
@@ -515,11 +510,14 @@ class Server extends events {
         Server.Default = this;
     }
 
-    /*
+    /**
      * Set a adapter
-     * @function Server.setAdapter
+     * @method Server.setAdapter
      * @param {Any} AdapterInstance
-     * @return void 0
+     * @return {void}
+     * 
+     * @throws {TypeError}
+     * @throws {Error}
      */
     async setAdapter(AdapterInstance) {
         if('undefined' === typeof(AdapterInstance)) {
@@ -532,11 +530,13 @@ class Server extends events {
         this.adapter = AdapterInstance;
     }
 
-    /*
+    /**
      * Listen to a port!
-     * @function Server.listen
+     * @method Server.listen
      * @param {Number} port
-     * @return void 0
+     * @return {void}
+     * 
+     * @throws {TypeError}
      */
     listen(port) {
         if(this.ssl === true) {
@@ -584,29 +584,29 @@ class Server extends events {
         });
     }
     
-    /*
+    /**
      * Native broadcast to all connected sockets
-     * @function Server.broadcast
+     * @method Server.broadcast
      * @param {String} message
-     * @return void 0
+     * @return {void}
      */
     broadcast(message) {
         this.wss.broadcast(message);
     }
 
-    /*
+    /**
      * Close websocket server!
-     * @function Server.close
-     * @param {Callback} cb
-     * @return void 0
+     * @method Server.close
+     * @param {Function} cb
+     * @return {void}
      */
     close(cb) {
         this.wss.close(cb);
     }
 
 }
-Server.Default = void 0;
-Server.Events = EventsController;
+Server.Default  = void 0;
+Server.Events   = EventsController;
 
 /*
  * Export all core class!
